@@ -18,3 +18,7 @@ class RunEntry(BaseModel):
     result: dict | None
     failure: str | None
     digest: str | None
+    source: str
+    restore_job_id: int | None
+    source_batch_no: str | None
+    source_amount_cents: int | None

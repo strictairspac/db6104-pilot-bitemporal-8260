@@ -40,16 +40,31 @@ export async function evidencePage(config, user, route) {
     }
   }}, "导出证据");
   const signing = el("div", {});
-  signing.append(review ? signature(review) : user.role === "reviewer" ?
-    reviewForm(run.id, data => signing.replaceChildren(signature(data))) : empty("待复核员签署。"));
+  if (review) {
+    signing.append(signature(review));
+  } else if (run.source === "restore") {
+    signing.append(empty("恢复批次应随备份带签核；此批缺签核，已在恢复任务中挂起。"));
+  } else if (user.role === "reviewer") {
+    signing.append(reviewForm(run.id, data => signing.replaceChildren(signature(data))));
+  } else {
+    signing.append(empty("待复核员签署。"));
+  }
   const options = el("select", {"aria-label": "选择已完成的批次", onchange: event => {
     location.hash = `evidence/${event.target.value}`;
-  }}, runs.map(item => el("option", {value: item.id, selected: item.id === run.id}, `#${item.id} ${item.case_title}`)));
+  }}, runs.map(item => el("option", {value: item.id, selected: item.id === run.id},
+    `${item.source_batch_no ? `${item.source_batch_no} · ` : ""}#${item.id} ${item.case_title}`)));
+  const credential = run.source === "restore" ? el("div", {class: "credential"},
+    el("h3", {}, "下载凭据（取自备份）"),
+    el("p", {}, `批次号：${run.source_batch_no}`),
+    el("p", {}, `原金额：${run.source_amount_cents} 分`)) : null;
   return el("div", {class: "page evidence"},
     pageHeading(config.modules[3], run.case_title, button),
     issue, options,
+    run.source === "restore" ? el("p", {class: "status state-item-restored"},
+      "换库恢复批次 · 原批次号与原金额沿用备份") : null,
     el("section", {class: "feature evidence-summary"}, el("div", {}, el("h2", {}, "批次判定"), el("p", {}, run.result.summary)),
       el("details", {}, el("summary", {}, "证据摘要"), el("code", {}, run.digest))),
+    credential,
     el("dl", {class: "metrics"}, Object.entries(run.result.metrics).map(([label, value]) =>
       el("div", {}, el("dt", {}, label), el("dd", {}, cell(value))))),
     section("业务结果明细", run.result.rows.length ? resultTable(run.result.rows) : empty("此批次无明细。")),

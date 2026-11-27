@@ -41,6 +41,33 @@ docker compose up -d --build --wait
 
 选用「LC-PILOT-1109」对应的演示资料，保存一份复演资料，再以默认参数 23 提交。worker 保存结果摘要、业务明细和 SHA-256。复核员登录后在「港务调账单」签署。
 
+## 备份恢复查账
+
+换库后，会计可以分次补回备份（每个备份是一个恢复任务，含若干引航开账批）。在「备份恢复」页或 `POST /restores` 提交备份包：
+
+```json
+{
+  "note": "会计第一次补回",
+  "bundle": {"batches": [{
+    "batch_no": "LC-PILOT-1201",
+    "billing": {"batch_no": "LC-PILOT-1201", "amount_cents": 96000},
+    "review":  {"batch_no": "LC-PILOT-1201", "amount_cents": 96000, "parameter": 23},
+    "signoff": {"batch_no": "LC-PILOT-1201", "actor": "reviewer", "note": "核对一致", "amount_cents": 96000}
+  }]}
+}
+```
+
+核对与恢复口径：
+
+- **三样对得上才恢复**：开账资料（billing）、复核结果（review）、签核（signoff）齐备，且复核与签核都回指同一批次号、金额与开账原金额一致，才恢复查账。
+- **缺件或对不上先挂起**：任一件缺失、金额不一致，或签核回指别的批次号（串批），该批标记「已挂起」并记录原因；同备份内其他批次照常恢复，互不影响。
+- **旧批次号撞号两份账并存**：恢复资料用 `RST-<任务号>-<原批次号>` 的内部编号入库，原批次号保存在 `source_batch_no`，现账与恢复账都能查到，不覆盖。
+- **签核不串批**：恢复出的签核只挂在本批执行记录上，并回写原批次号；串批在核对阶段即被拦下。
+- **中断可重试、不重复**：任务和每批明细都持久化。处理中断后 `POST /restores/{id}/retry`（或 worker 自动接手 `running` 任务）只处理仍是待处理的批次；已恢复批次有终态保护，重复提交会跳过，不重复建账、不重复出现。
+- **下载凭据沿用备份**：恢复批次的执行记录保存 `source_batch_no` 与 `source_amount_cents`，导出证据附 `download_credential`，文件名用原批次号，金额始终是备份原金额，不使用新库内部编号或重算值。
+
+挂起批次补齐材料后，在新的恢复任务里重新提交即可；旧任务的挂起记录保留不改写。接口：`GET /restores`、`GET /restores/{id}`、`GET /restores/{id}/items`、`POST /restores/{id}/retry`。
+
 ## 开发说明
 
 | 部分 | 实现 |

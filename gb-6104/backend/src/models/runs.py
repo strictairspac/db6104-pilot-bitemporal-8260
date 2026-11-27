@@ -14,4 +14,9 @@ runs = Table(
     Column("result", JSON(none_as_null=True), nullable=True),
     Column("failure", String(320), nullable=True),
     Column("digest", String(64), nullable=True),
+    # 恢复批次回指恢复任务与明细，并保留备份里的原批次号和原金额作为下载凭据。
+    Column("source", String(16), nullable=False, server_default="manual"),
+    Column("restore_job_id", Integer, nullable=True, index=True),
+    Column("source_batch_no", String(30), nullable=True, index=True),
+    Column("source_amount_cents", BigInteger, nullable=True),
 )

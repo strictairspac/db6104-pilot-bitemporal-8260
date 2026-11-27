@@ -16,3 +16,4 @@ class ReviewEntry(ReviewInput):
     run_id: int
     actor: str
     created_at: int
+    source_batch_no: str | None = None

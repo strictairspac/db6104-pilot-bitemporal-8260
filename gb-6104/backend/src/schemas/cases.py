@@ -27,3 +27,5 @@ class CaseEntry(CaseInput):
     id: int
     code: str
     created_by: str
+    source: str
+    source_batch_no: str | None = None

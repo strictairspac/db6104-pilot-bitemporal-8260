@@ -3,9 +3,10 @@ import { routes } from "../../router/router.js";
 import { el } from "../../utils/dom.js";
 
 export function shell(config, user, route, page, signOut) {
+  const labels = [...config.modules, "备份恢复"];
   const links = routes.map((name, index) => el("a", {
     href: `#${name}`, "aria-current": route.name === name ? "page" : null,
-  }, config.modules[index]));
+  }, labels[index] || name));
   return el("div", {class: "shell"},
     el("aside", {class: "rail"},
       el("a", {class: "brand", href: "#overview"}, config.title),

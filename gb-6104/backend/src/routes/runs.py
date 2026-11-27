@@ -43,6 +43,13 @@ def export(run_id: int):
         if run["status"] != JobState.DONE:
             raise HTTPException(409, "没有可导出的执行结果")
         run["review"] = reviews.get(db, run_id)
+        if run["source"] == "restore":
+            # 下载凭据仍用备份里的批次号和原金额，不使用新库内部编号或重算值。
+            run["download_credential"] = {
+                "batch_no": run["source_batch_no"],
+                "amount_cents": run["source_amount_cents"],
+            }
+    filename = f"evidence-{run.get('source_batch_no') or run_id}.json"
     return Response(canonical_json(run), media_type="application/json", headers={
-        "Content-Disposition": f"attachment; filename=evidence-{run_id}.json",
+        "Content-Disposition": f"attachment; filename={filename}",
     })
